@@ -2,6 +2,11 @@ import psycopg2
 import tkinter as tk
 from tkinter import ttk, messagebox
 
+from hupper import start_reloader
+
+if __name__ == "__main__":
+    start_reloader('new.__main__')
+
 
 # Function to create the PostgreSQL database and tables
 def create_db():
