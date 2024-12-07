@@ -12,7 +12,7 @@ if __name__ == "__main__":
 def create_db():
     try:
         conn = psycopg2.connect(
-            dbname="pump_stock_management",
+            dbname="pump_stock_managements",
             user="local_user",
             password="123",
             host="localhost",
@@ -85,6 +85,7 @@ def login():
         conn.close()
     except Exception as e:
         messagebox.showerror("Database Error", f"Error connecting to the database: {e}")
+
 
 # Function to show the dashboard in the same window
 def show_dashboard():
@@ -271,15 +272,36 @@ def open_new_product_input():
     # Ensure proper column weight to stretch the entry fields and buttons
     content_frame.grid_columnconfigure(1, weight=1)
     
-# Function to display all products
+def open_edit_product_page(product_id):
+    """
+    Navigate to a separate page to edit product details.
+    """
+    # Clear existing widgets
+    for widget in root.winfo_children():
+        widget.destroy()
+
+    open_edit_product_form(product_id)
+
+
+def open_update_stock_page(product_id):
+    """
+    Navigate to a separate page to update stock.
+    """
+    # Clear existing widgets
+    for widget in root.winfo_children():
+        widget.destroy()
+
+    update_stock(product_id)
+
+
 def open_view_stock():
-    global content_frame
-
-    if content_frame:
-        content_frame.destroy()
-
-    content_frame = tk.Frame(root)
-    content_frame.pack(fill="both", expand=True)
+    """
+    Display product inventory listing with Edit and Update options.
+    """
+    # Clear the existing widgets except the menu
+    for widget in root.winfo_children():
+        if not isinstance(widget, tk.Menu):  # Skip menu widgets
+            widget.destroy()
 
     try:
         # Connect to the database and fetch product details
@@ -295,78 +317,79 @@ def open_view_stock():
         products = cursor.fetchall()
 
         # Add a title label
-        tk.Label(content_frame, text="Product Inventory", font=("Helvetica", 16, "bold"), bg="#ecf0f1").pack(pady=10)
+        title_label = tk.Label(
+            root,
+            text="Product Inventory",
+            font=("Helvetica", 20, "bold"),
+            bg="#2c3e50",
+            fg="#ecf0f1",
+            pady=10
+        )
+        title_label.pack(fill="x")
 
-        # Create a treeview to display products
-        tree = ttk.Treeview(content_frame, columns=("Product Name", "Product Code", "Unit Price", "Stock", "Edit", "Update"), show="headings")
-        tree.heading("#1", text="Product Name")
-        tree.heading("#2", text="Product Code")
-        tree.heading("#3", text="Unit Price")
-        tree.heading("#4", text="Stock")
-        tree.heading("#5", text="Edit")
-        tree.heading("#6", text="Update")
+        # Create a header for the product list
+        header_frame = tk.Frame(root, bg="#34495e", padx=10, pady=5)
+        header_frame.pack(fill="x", padx=10)
 
-        # Set column widths
-        tree.column("#1", width=150, anchor="center")
-        tree.column("#2", width=100, anchor="center")
-        tree.column("#3", width=100, anchor="center")
-        tree.column("#4", width=100, anchor="center")
-        tree.column("#5", width=100, anchor="center")
-        tree.column("#6", width=100, anchor="center")
+        headers = ["Product Name", "Product Code", "Unit Price", "Stock", "Edit", "Update"]
+        column_widths = [20, 20, 15, 10, 10, 10]
 
-        # Add a scrollbar to the treeview
-        scrollbar = ttk.Scrollbar(content_frame, orient="vertical", command=tree.yview)
-        tree.configure(yscrollcommand=scrollbar.set)
-        scrollbar.pack(side="right", fill="y")
-        tree.pack(fill="both", expand=True, padx=10, pady=10)
+        for i, header in enumerate(headers):
+            tk.Label(
+                header_frame,
+                text=header,
+                font=("Helvetica", 12, "bold"),
+                bg="#34495e",
+                fg="#ecf0f1",
+                width=column_widths[i],
+                anchor="w"
+            ).grid(row=0, column=i, padx=5)
 
-        # Insert rows into the Treeview
-        for product in products:
+        # Create rows for each product
+        for index, product in enumerate(products):
             product_id, product_name, product_code, unit_price, stock = product
-            tree.insert(
-                "",
-                "end",
-                values=(
-                    product_name,
-                    product_code,
-                    unit_price,
-                    stock,
-                    "Edit",        # Placeholder for Edit button
-                    "Update"       # Placeholder for Update button
-                ),
-                tags=(product_id,)
+
+            # Alternate row colors
+            bg_color = "#ecf0f1" if index % 2 == 0 else "#bdc3c7"
+
+            row_frame = tk.Frame(root, bg=bg_color, padx=10, pady=5)
+            row_frame.pack(fill="x", padx=10)
+
+            # Add product details
+            tk.Label(row_frame, text=product_name, font=("Helvetica", 12), bg=bg_color, fg="#34495e", width=20, anchor="w").grid(row=0, column=0, padx=5)
+            tk.Label(row_frame, text=product_code, font=("Helvetica", 12), bg=bg_color, fg="#34495e", width=20, anchor="w").grid(row=0, column=1, padx=5)
+            tk.Label(row_frame, text=f"{unit_price:.2f}", font=("Helvetica", 12), bg=bg_color, fg="#34495e", width=15, anchor="w").grid(row=0, column=2, padx=5)
+            tk.Label(row_frame, text=str(stock), font=("Helvetica", 12), bg=bg_color, fg="#34495e", width=10, anchor="w").grid(row=0, column=3, padx=5)
+
+            # Add Edit and Update buttons
+            edit_button = tk.Button(
+                row_frame,
+                text="Edit",
+                font=("Helvetica", 10, "bold"),
+                bg="#3498db",
+                fg="white",
+                width=10,
+                command=lambda pid=product_id: open_edit_product_page(pid)  # Navigate to Edit page
             )
+            edit_button.grid(row=0, column=4, padx=5)
 
-        # Function to display Edit Product form in the same window
-        def show_edit_form(product_id):
-            # Clear content_frame and show edit form
-            open_edit_product_form(product_id)
-
-        # Function to handle Treeview clicks
-        def on_treeview_click(event):
-            item_id = tree.identify_row(event.y)
-            column = tree.identify_column(event.x)
-            if not item_id:
-                return
-
-            # Get the clicked row data
-            item_values = tree.item(item_id, "values")
-            product_index = tree.index(item_id)
-            product_id = products[product_index][0]
-
-            if column == "#5":  # Edit column
-                show_edit_form(product_id)
-            elif column == "#6":  # Update column
-                update_stock(product_id)
-
-        # Bind the click event
-        tree.bind("<ButtonRelease-1>", on_treeview_click)
+            update_button = tk.Button(
+                row_frame,
+                text="Update",
+                font=("Helvetica", 10, "bold"),
+                bg="#27ae60",
+                fg="white",
+                width=10,
+                command=lambda pid=product_id: open_update_stock_page(pid)  # Navigate to Update Stock page
+            )
+            update_button.grid(row=0, column=5, padx=5)
 
         cursor.close()
         conn.close()
 
     except Exception as e:
         messagebox.showerror("Database Error", f"Error fetching product data: {e}")
+
 
 
 def open_edit_product_form(product_id):
@@ -592,5 +615,8 @@ error_label.grid(row=3, column=0, columnspan=2, pady=5)
 
 login_button = tk.Button(frame, text="Login", font=("Helvetica", 12, "bold"), bg="#3498db", fg="white", width=15, height=2, command=login)
 login_button.grid(row=4, column=0, columnspan=2, pady=20)
+
+# Bind the Enter key to the login function
+root.bind('<Return>', lambda event: login())
 
 root.mainloop()
