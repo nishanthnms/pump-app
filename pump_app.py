@@ -4,15 +4,17 @@ from tkinter import ttk, messagebox
 
 from hupper import start_reloader
 
+from bank import open_bank_management
+
 if __name__ == "__main__":
-    start_reloader('new.__main__')
+    start_reloader('pump_app.__main__')
 
 
 # Function to create the PostgreSQL database and tables
 def create_db():
     try:
         conn = psycopg2.connect(
-            dbname="pump_stock_managements",
+            dbname="pump_stock_management",
             user="local_user",
             password="123",
             host="localhost",
@@ -42,6 +44,37 @@ def create_db():
                 stock INT NOT NULL DEFAULT 0,
                 is_active BOOLEAN DEFAULT TRUE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        # Create bank table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS bank (
+                id SERIAL PRIMARY KEY,
+                bank_name TEXT NOT NULL,
+                ifsc_code VARCHAR(250) UNIQUE NOT NULL,
+                branch_name VARCHAR(250) NOT NULL,
+                account_number VARCHAR(250) NOT NULL,
+                account_balance NUMERIC(20,2) NOT NULL,
+                is_active BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        # Create bank_log table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS bank_log (
+                id SERIAL PRIMARY KEY,
+                bank_id INTEGER NOT NULL, 
+                log_date DATE NOT NULL,
+                opening_balance NUMERIC(20,2) NOT NULL,
+                withdraw NUMERIC(20,2) NOT NULL,
+                deposit NUMERIC(20,2) NOT NULL,
+                closing_balance NUMERIC(20,2) NOT NULL,
+                comments VARCHAR(250),
+                is_active BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT fk_bank FOREIGN KEY (bank_id) REFERENCES bank (id) ON DELETE CASCADE
             )
         ''')
 
@@ -118,6 +151,9 @@ def show_dashboard():
     report_menu = tk.Menu(menu_bar, tearoff=0)
     report_menu.add_command(label="Show Greeting", command=display_greeting)
     menu_bar.add_cascade(label="Report", menu=report_menu)
+
+    # Bank Menu
+    menu_bar.add_command(label="Bank", command=open_bank_management)
 
     root.config(menu=menu_bar)
 
@@ -618,5 +654,8 @@ login_button.grid(row=4, column=0, columnspan=2, pady=20)
 
 # Bind the Enter key to the login function
 root.bind('<Return>', lambda event: login())
+
+# Initialize the database (only needed once)
+create_db()
 
 root.mainloop()
