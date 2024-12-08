@@ -3,6 +3,7 @@ from tkinter import messagebox
 import psycopg2
 from stock_management import open_new_product_input, open_view_stock
 from bank import open_view_bank, open_new_bank_input
+from daily_sales import open_daily_sales
 
 # Global reference for the content frame
 content_frame = None
@@ -35,6 +36,9 @@ def show_dashboard(root):
     # Report menu
     report_menu = tk.Menu(menu_bar, tearoff=0)
     menu_bar.add_cascade(label="Report", menu=report_menu)
+
+    # Daily Log menu
+    menu_bar.add_command(label="Daily Sales Tracker", command=lambda: open_daily_sales(root))
 
     # Bank menu
     bank_menu = tk.Menu(menu_bar, tearoff=0)
