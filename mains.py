@@ -22,10 +22,11 @@ def create_db():
         )
         cursor = conn.cursor()
 
-        # Create users table
+        # Create users table with unique constraint on username
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS users (
-                username TEXT PRIMARY KEY NOT NULL,
+                id SERIAL PRIMARY KEY,
+                username TEXT NOT NULL UNIQUE, 
                 password TEXT NOT NULL,
                 email VARCHAR(255) UNIQUE,
                 user_type TEXT,
@@ -61,6 +62,7 @@ def create_db():
             )
         ''')
 
+
         # Create bank_log table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS bank_log (
@@ -71,12 +73,72 @@ def create_db():
                 withdraw NUMERIC(20,2) NOT NULL,
                 deposit NUMERIC(20,2) NOT NULL,
                 closing_balance NUMERIC(20,2) NOT NULL,
+                added_by INTEGER NOT NULL,
                 comments VARCHAR(250),
                 is_active BOOLEAN DEFAULT TRUE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                CONSTRAINT fk_bank FOREIGN KEY (bank_id) REFERENCES bank (id) ON DELETE CASCADE
+                CONSTRAINT fk_bank FOREIGN KEY (bank_id) REFERENCES bank (id) ON DELETE CASCADE,
+                CONSTRAINT fk_added_by FOREIGN KEY (added_by) REFERENCES users (id) ON DELETE CASCADE
             )
         ''')
+
+
+        # Create stock_update_log table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS stock_update_log (
+                id SERIAL PRIMARY KEY,
+                product_id INTEGER NOT NULL, 
+                previous_stock NUMERIC(20,2) NOT NULL,
+                updated_stock NUMERIC(20,2) NOT NULL,
+                updated_by INTEGER NOT NULL, -- Assuming this references a user or employee table
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT fk_product FOREIGN KEY (product_id) REFERENCES product (id) ON DELETE CASCADE,
+                CONSTRAINT fk_updated_by FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE CASCADE
+            )
+        ''')
+
+        # Create sale_log table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS sale_log (
+                id SERIAL PRIMARY KEY,
+                product_id INTEGER NOT NULL,
+                opening_stock NUMERIC(20,2) NOT NULL,
+                closing_stock NUMERIC(20,2) NOT NULL,
+                sale NUMERIC(20,2) NOT NULL,
+                unit_profit NUMERIC(20,2) NOT NULL,
+                total_profit NUMERIC(20,2) NOT NULL,
+                added_by INTEGER NOT NULL, -- Assuming this references a user or employee table
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT fk_product FOREIGN KEY (product_id) REFERENCES product (id) ON DELETE CASCADE,
+                CONSTRAINT fk_added_by FOREIGN KEY (added_by) REFERENCES users (id) ON DELETE CASCADE
+            )
+        ''') 
+
+        # Create collection_log table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS collection_log (
+                id SERIAL PRIMARY KEY,
+                inhand_amount NUMERIC(20,2) NOT NULL,
+                bank_amount NUMERIC(20,2) NOT NULL,
+                added_by INTEGER NOT NULL, -- Assuming this references a user or employee table
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT fk_added_by FOREIGN KEY (added_by) REFERENCES users (id) ON DELETE CASCADE
+
+            )
+        ''') 
+
+        # Create expense_log table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS expense_log (
+                id SERIAL PRIMARY KEY,
+                comment VARCHAR(255) NOT NULL,
+                amount NUMERIC(20,2) NOT NULL,
+                added_by INTEGER NOT NULL, -- Assuming this references a user or employee table
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT fk_added_by FOREIGN KEY (added_by) REFERENCES users (id) ON DELETE CASCADE
+            )
+        ''')          
+
 
         # Insert initial data
         cursor.execute(
@@ -122,7 +184,7 @@ def login():
 # Create root window
 root = tk.Tk()
 root.title("Login")
-root.geometry("700x600")
+root.geometry("1280x720")
 
 # Create login form
 frame = tk.Frame(root, bg="#ecf0f1", padx=20, pady=20)
@@ -136,6 +198,7 @@ username_label.grid(row=1, column=0, pady=10, sticky="e")
 
 entry_username = tk.Entry(frame, font=("Helvetica", 12), width=20, bd=2, relief="solid", fg="#34495e")
 entry_username.grid(row=1, column=1, pady=10)
+entry_username.focus_set()  # Set focus on the username field
 
 password_label = tk.Label(frame, text="Password:", font=("Helvetica", 12), bg="#ecf0f1", fg="#34495e")
 password_label.grid(row=2, column=0, pady=10, sticky="e")
@@ -146,8 +209,20 @@ entry_password.grid(row=2, column=1, pady=10)
 error_label = tk.Label(frame, text="", font=("Helvetica", 12), fg="red", bg="#ecf0f1")
 error_label.grid(row=3, column=0, columnspan=2, pady=5)
 
-login_button = tk.Button(frame, text="Login", font=("Helvetica", 12, "bold"), bg="#3498db", fg="white", width=15, height=2, command=login)
-login_button.grid(row=4, column=0, columnspan=2, pady=20)
+# login_button = tk.Button(frame, text="Login", font=("Helvetica", 12, "bold"), bg="#3498db", fg="white", width=15, height=2, command=login)
+# login_button.grid(row=4, column=0, columnspan=2, pady=20)
+login_button = tk.Button(
+    frame,
+    text="Login",
+    font=("Helvetica", 12, "bold"),
+    bg="#3498db",
+    fg="white",
+    width=15,
+    height=2,
+    command=login
+)
+login_button.grid(row=4, column=0, columnspan=2, pady=20, sticky="n")
+
 
 # Bind the Enter key to the login function
 root.bind('<Return>', lambda event: login())
