@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import messagebox
 import psycopg2
 from stock_management import open_new_product_input, open_view_stock
+from bank import open_view_bank, open_new_bank_input
 
 # Global reference for the content frame
 content_frame = None
@@ -34,6 +35,13 @@ def show_dashboard(root):
     # Report menu
     report_menu = tk.Menu(menu_bar, tearoff=0)
     menu_bar.add_cascade(label="Report", menu=report_menu)
+
+    # Bank menu
+    bank_menu = tk.Menu(menu_bar, tearoff=0)
+    bank_menu.add_command(label="View Bank", command=lambda: open_view_bank(root))  # Pass 'root' to this function
+    bank_menu.add_command(label="Add New Bank", command=lambda: open_new_bank_input(root))  # Pass 'root' to this function
+    menu_bar.add_cascade(label="Bank Management", menu=bank_menu)
+
 
     root.config(menu=menu_bar)
 

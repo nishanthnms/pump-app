@@ -4,6 +4,12 @@ from dashboard import show_dashboard
 from stock_management import open_new_product_input, open_view_stock
 import psycopg2
 
+from hupper import start_reloader
+
+
+if __name__ == "__main__":
+    start_reloader('mains.__main__')
+
 # Function to create the PostgreSQL database and tables
 def create_db():
     try:
