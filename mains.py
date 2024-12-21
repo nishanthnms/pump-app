@@ -90,7 +90,7 @@ def create_db():
                 product_id INTEGER NOT NULL, 
                 previous_stock NUMERIC(20,2) NOT NULL,
                 updated_stock NUMERIC(20,2) NOT NULL,
-                updated_by INTEGER NOT NULL, -- Assuming this references a user or employee table
+                updated_by INTEGER NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 CONSTRAINT fk_product FOREIGN KEY (product_id) REFERENCES product (id) ON DELETE CASCADE,
                 CONSTRAINT fk_updated_by FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE CASCADE
@@ -152,6 +152,8 @@ def create_db():
         cursor.close()
         conn.close()
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         messagebox.showerror("Database Error", f"Error creating database: {e}")
 
 # Function to handle login
@@ -172,6 +174,8 @@ def login():
         user = cursor.fetchone()
 
         if user:
+            # Store user ID in the root window for global access
+            root.logged_user_id = user[0]
             error_label.config(text="")
             show_dashboard(root)  # Pass the root object to the show_dashboard function
         else:
