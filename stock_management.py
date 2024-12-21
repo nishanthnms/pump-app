@@ -1,12 +1,13 @@
 import tkinter as tk
 from tkinter import messagebox,ttk
 import psycopg2
+from bank import open_view_bank, open_new_bank_input
+from daily_sales import open_daily_sales
 
 content_frame = None
 
 def open_new_product_input(root):  # Pass 'root' as a parameter here
     from dashboard import show_dashboard
-
     global content_frame
 
     # Clear existing content (including the stock listing)
@@ -16,6 +17,60 @@ def open_new_product_input(root):  # Pass 'root' as a parameter here
 
     content_frame = tk.Frame(root, bg="#f4f6f7")
     content_frame.pack(fill="both", expand=True)
+
+    # Create the header frame
+    header_frame = tk.Frame(root, bg="#2c3e50", height=50)
+    header_frame.pack(side="top", fill="x")
+
+    # Create the logout button (top-right corner)
+    logout_button = tk.Button(header_frame, text="Logout", font=("Helvetica", 12), bg="#e74c3c", fg="white", relief="flat", command=root.quit)
+    logout_button.pack(side="right", padx=20, pady=10)
+
+    # Create a frame for the sidebar (left-aligned menu)
+    sidebar = tk.Frame(root, bg="#2c3e50", width=250, height=root.winfo_height(), padx=10, pady=10)
+    sidebar.pack(side="left", fill="y")
+
+    # Create a frame for the content area
+    content_frame = tk.Frame(root, bg="#ecf0f1")
+    content_frame.pack(side="right", fill="both", expand=True)
+
+    # Create buttons for the sidebar menu
+    home_button = tk.Button(sidebar, text="Home", font=("Helvetica", 14), bg="#34495e", fg="white", command=lambda: show_dashboard(root), anchor="w", relief="flat", padx=20)
+    home_button.pack(fill="x", pady=10)
+
+    # Stock Management Button
+    stock_button = tk.Button(sidebar, text="Stock Management", font=("Helvetica", 14), bg="#34495e", fg="white", anchor="w", relief="flat", padx=20)
+    stock_button.pack(fill="x", pady=10)
+
+    # Submenu for Stock Management (Always visible)
+    stock_submenu = tk.Frame(sidebar, bg="#34495e")
+    stock_submenu.pack(fill="x", pady=10, padx=20)
+
+    add_product_button = tk.Button(stock_submenu, text="Add New Product", font=("Helvetica", 12), bg="#7f8c8d", fg="white", anchor="w", relief="flat", padx=20, command=lambda: open_new_product_input(root))
+    add_product_button.pack(fill="x", pady=5)
+
+    view_stock_button = tk.Button(stock_submenu, text="View Stock", font=("Helvetica", 12), bg="#7f8c8d", fg="white", anchor="w", relief="flat", padx=20, command=lambda: open_view_stock(root))
+    view_stock_button.pack(fill="x", pady=5)
+
+    # Bank Management Button
+    bank_button = tk.Button(sidebar, text="Bank Management", font=("Helvetica", 14), bg="#34495e", fg="white", anchor="w", relief="flat", padx=20)
+    bank_button.pack(fill="x", pady=10)
+
+    # Submenu for Bank Management (Always visible)
+    bank_submenu = tk.Frame(sidebar, bg="#34495e")
+    bank_submenu.pack(fill="x", pady=10, padx=20)
+
+    view_bank_button = tk.Button(bank_submenu, text="View Bank", font=("Helvetica", 12), bg="#7f8c8d", fg="white", anchor="w", relief="flat", padx=20, command=lambda: open_view_bank(root))
+    view_bank_button.pack(fill="x", pady=5)
+
+    add_bank_button = tk.Button(bank_submenu, text="Add New Bank", font=("Helvetica", 12), bg="#7f8c8d", fg="white", anchor="w", relief="flat", padx=20, command=lambda: open_new_bank_input(root))
+    add_bank_button.pack(fill="x", pady=5)
+
+    # Daily Log (Sales Tracker) Button
+    daily_log_button = tk.Button(sidebar, text="Daily Sales Tracker", font=("Helvetica", 14), bg="#34495e", fg="white", anchor="w", relief="flat", padx=20, command=lambda: open_daily_sales(root))
+    daily_log_button.pack(fill="x", pady=10)
+
+
 
     title_label = tk.Label(content_frame, text="Enter New Product Details", font=("Helvetica", 18, "bold"), bg="#f4f6f7", fg="#2c3e50")
     title_label.grid(row=0, column=0, columnspan=2, pady=20)
@@ -31,8 +86,8 @@ def open_new_product_input(root):  # Pass 'root' as a parameter here
     submit_button.grid(row=6, column=1, padx=10, pady=20, sticky="ew")
 
     # Back Button to return to the dashboard
-    back_button = tk.Button(content_frame, text="Back", command=lambda: show_dashboard(root), bg="#c0392b", fg="#ffffff", font=("Helvetica", 12, "bold"))
-    back_button.grid(row=6, column=0, padx=10, pady=20, sticky="ew")
+    # back_button = tk.Button(content_frame, text="Back", command=lambda: show_dashboard(root), bg="#c0392b", fg="#ffffff", font=("Helvetica", 12, "bold"))
+    # back_button.grid(row=6, column=0, padx=10, pady=20, sticky="ew")
 
 def create_labeled_entry(label_text, row):
     label = tk.Label(content_frame, text=label_text, font=("Helvetica", 12), bg="#f4f6f7", fg="#34495e")
@@ -84,7 +139,9 @@ def save_product(name_entry, code_entry, price_entry, stock_entry, root):
     except Exception as e:
         messagebox.showerror("Database Error", f"Error saving product: {e}")
 
-def open_view_stock(root):  
+def open_view_stock(root): 
+    from dashboard import show_dashboard
+
     """
     Display product inventory listing with Edit and Update options.
     """
@@ -92,6 +149,60 @@ def open_view_stock(root):
     for widget in root.winfo_children():
         if not isinstance(widget, tk.Menu):  # Skip menu widgets
             widget.destroy()
+
+    # Create the header frame
+    header_frame = tk.Frame(root, bg="#2c3e50", height=50)
+    header_frame.pack(side="top", fill="x")
+
+    # Create the logout button (top-right corner)
+    logout_button = tk.Button(header_frame, text="Logout", font=("Helvetica", 12), bg="#e74c3c", fg="white", relief="flat", command=root.quit)
+    logout_button.pack(side="right", padx=20, pady=10)
+
+    # Create a frame for the sidebar (left-aligned menu)
+    sidebar = tk.Frame(root, bg="#2c3e50", width=250, height=root.winfo_height(), padx=10, pady=10)
+    sidebar.pack(side="left", fill="y")
+
+    # Create a frame for the content area
+    content_frame = tk.Frame(root, bg="#ecf0f1")
+    content_frame.pack(side="right", fill="both", expand=True)
+
+    # Create buttons for the sidebar menu
+    home_button = tk.Button(sidebar, text="Home", font=("Helvetica", 14), bg="#34495e", fg="white", command=lambda: show_dashboard(root), anchor="w", relief="flat", padx=20)
+    home_button.pack(fill="x", pady=10)
+
+    # Stock Management Button
+    stock_button = tk.Button(sidebar, text="Stock Management", font=("Helvetica", 14), bg="#34495e", fg="white", anchor="w", relief="flat", padx=20)
+    stock_button.pack(fill="x", pady=10)
+
+    # Submenu for Stock Management (Always visible)
+    stock_submenu = tk.Frame(sidebar, bg="#34495e")
+    stock_submenu.pack(fill="x", pady=10, padx=20)
+
+    add_product_button = tk.Button(stock_submenu, text="Add New Product", font=("Helvetica", 12), bg="#7f8c8d", fg="white", anchor="w", relief="flat", padx=20, command=lambda: open_new_product_input(root))
+    add_product_button.pack(fill="x", pady=5)
+
+    view_stock_button = tk.Button(stock_submenu, text="View Stock", font=("Helvetica", 12), bg="#7f8c8d", fg="white", anchor="w", relief="flat", padx=20, command=lambda: open_view_stock(root))
+    view_stock_button.pack(fill="x", pady=5)
+
+    # Bank Management Button
+    bank_button = tk.Button(sidebar, text="Bank Management", font=("Helvetica", 14), bg="#34495e", fg="white", anchor="w", relief="flat", padx=20)
+    bank_button.pack(fill="x", pady=10)
+
+    # Submenu for Bank Management (Always visible)
+    bank_submenu = tk.Frame(sidebar, bg="#34495e")
+    bank_submenu.pack(fill="x", pady=10, padx=20)
+
+    view_bank_button = tk.Button(bank_submenu, text="View Bank", font=("Helvetica", 12), bg="#7f8c8d", fg="white", anchor="w", relief="flat", padx=20, command=lambda: open_view_bank(root))
+    view_bank_button.pack(fill="x", pady=5)
+
+    add_bank_button = tk.Button(bank_submenu, text="Add New Bank", font=("Helvetica", 12), bg="#7f8c8d", fg="white", anchor="w", relief="flat", padx=20, command=lambda: open_new_bank_input(root))
+    add_bank_button.pack(fill="x", pady=5)
+
+    # Daily Log (Sales Tracker) Button
+    daily_log_button = tk.Button(sidebar, text="Daily Sales Tracker", font=("Helvetica", 14), bg="#34495e", fg="white", anchor="w", relief="flat", padx=20, command=lambda: open_daily_sales(root))
+    daily_log_button.pack(fill="x", pady=10)
+
+
 
     try:
         # Connect to the database and fetch product details
@@ -106,16 +217,7 @@ def open_view_stock(root):
         cursor.execute("SELECT id, product_name, product_code, unit_price, stock FROM product WHERE is_active=TRUE")
         products = cursor.fetchall()
 
-        # Add a title label
-        title_label = tk.Label(
-            root,
-            text="Product Inventory",
-            font=("Helvetica", 20, "bold"),
-            bg="#2c3e50",
-            fg="#ecf0f1",
-            pady=10
-        )
-        title_label.pack(fill="x")
+       
 
         # Create a header for the product list
         header_frame = tk.Frame(root, bg="#34495e", padx=10, pady=5)
@@ -172,6 +274,60 @@ def open_edit_product_form(root, product_id):
     for widget in root.winfo_children():
         if not isinstance(widget, tk.Menu):  # Skip menu widgets
             widget.destroy()
+
+    # Create the header frame
+    header_frame = tk.Frame(root, bg="#2c3e50", height=50)
+    header_frame.pack(side="top", fill="x")
+
+    # Create the logout button (top-right corner)
+    logout_button = tk.Button(header_frame, text="Logout", font=("Helvetica", 12), bg="#e74c3c", fg="white", relief="flat", command=root.quit)
+    logout_button.pack(side="right", padx=20, pady=10)
+
+    # Create a frame for the sidebar (left-aligned menu)
+    sidebar = tk.Frame(root, bg="#2c3e50", width=250, height=root.winfo_height(), padx=10, pady=10)
+    sidebar.pack(side="left", fill="y")
+
+    # Create a frame for the content area
+    content_frame = tk.Frame(root, bg="#ecf0f1")
+    content_frame.pack(side="right", fill="both", expand=True)
+
+    # Create buttons for the sidebar menu
+    home_button = tk.Button(sidebar, text="Home", font=("Helvetica", 14), bg="#34495e", fg="white", command=lambda: show_dashboard(root), anchor="w", relief="flat", padx=20)
+    home_button.pack(fill="x", pady=10)
+
+    # Stock Management Button
+    stock_button = tk.Button(sidebar, text="Stock Management", font=("Helvetica", 14), bg="#34495e", fg="white", anchor="w", relief="flat", padx=20)
+    stock_button.pack(fill="x", pady=10)
+
+    # Submenu for Stock Management (Always visible)
+    stock_submenu = tk.Frame(sidebar, bg="#34495e")
+    stock_submenu.pack(fill="x", pady=10, padx=20)
+
+    add_product_button = tk.Button(stock_submenu, text="Add New Product", font=("Helvetica", 12), bg="#7f8c8d", fg="white", anchor="w", relief="flat", padx=20, command=lambda: open_new_product_input(root))
+    add_product_button.pack(fill="x", pady=5)
+
+    view_stock_button = tk.Button(stock_submenu, text="View Stock", font=("Helvetica", 12), bg="#7f8c8d", fg="white", anchor="w", relief="flat", padx=20, command=lambda: open_view_stock(root))
+    view_stock_button.pack(fill="x", pady=5)
+
+    # Bank Management Button
+    bank_button = tk.Button(sidebar, text="Bank Management", font=("Helvetica", 14), bg="#34495e", fg="white", anchor="w", relief="flat", padx=20)
+    bank_button.pack(fill="x", pady=10)
+
+    # Submenu for Bank Management (Always visible)
+    bank_submenu = tk.Frame(sidebar, bg="#34495e")
+    bank_submenu.pack(fill="x", pady=10, padx=20)
+
+    view_bank_button = tk.Button(bank_submenu, text="View Bank", font=("Helvetica", 12), bg="#7f8c8d", fg="white", anchor="w", relief="flat", padx=20, command=lambda: open_view_bank(root))
+    view_bank_button.pack(fill="x", pady=5)
+
+    add_bank_button = tk.Button(bank_submenu, text="Add New Bank", font=("Helvetica", 12), bg="#7f8c8d", fg="white", anchor="w", relief="flat", padx=20, command=lambda: open_new_bank_input(root))
+    add_bank_button.pack(fill="x", pady=5)
+
+    # Daily Log (Sales Tracker) Button
+    daily_log_button = tk.Button(sidebar, text="Daily Sales Tracker", font=("Helvetica", 14), bg="#34495e", fg="white", anchor="w", relief="flat", padx=20, command=lambda: open_daily_sales(root))
+    daily_log_button.pack(fill="x", pady=10)
+
+
 
     content_frame = tk.Frame(root, bg="#f4f6f7")  # Set background color
     content_frame.pack(fill="both", expand=True)
@@ -268,6 +424,60 @@ def update_stock(root, product_id):
     for widget in root.winfo_children():
         if not isinstance(widget, tk.Menu):  # Skip menu widgets
             widget.destroy()
+
+    # Create the header frame
+    header_frame = tk.Frame(root, bg="#2c3e50", height=50)
+    header_frame.pack(side="top", fill="x")
+
+    # Create the logout button (top-right corner)
+    logout_button = tk.Button(header_frame, text="Logout", font=("Helvetica", 12), bg="#e74c3c", fg="white", relief="flat", command=root.quit)
+    logout_button.pack(side="right", padx=20, pady=10)
+
+    # Create a frame for the sidebar (left-aligned menu)
+    sidebar = tk.Frame(root, bg="#2c3e50", width=250, height=root.winfo_height(), padx=10, pady=10)
+    sidebar.pack(side="left", fill="y")
+
+    # Create a frame for the content area
+    content_frame = tk.Frame(root, bg="#ecf0f1")
+    content_frame.pack(side="right", fill="both", expand=True)
+
+    # Create buttons for the sidebar menu
+    home_button = tk.Button(sidebar, text="Home", font=("Helvetica", 14), bg="#34495e", fg="white", command=lambda: show_dashboard(root), anchor="w", relief="flat", padx=20)
+    home_button.pack(fill="x", pady=10)
+
+    # Stock Management Button
+    stock_button = tk.Button(sidebar, text="Stock Management", font=("Helvetica", 14), bg="#34495e", fg="white", anchor="w", relief="flat", padx=20)
+    stock_button.pack(fill="x", pady=10)
+
+    # Submenu for Stock Management (Always visible)
+    stock_submenu = tk.Frame(sidebar, bg="#34495e")
+    stock_submenu.pack(fill="x", pady=10, padx=20)
+
+    add_product_button = tk.Button(stock_submenu, text="Add New Product", font=("Helvetica", 12), bg="#7f8c8d", fg="white", anchor="w", relief="flat", padx=20, command=lambda: open_new_product_input(root))
+    add_product_button.pack(fill="x", pady=5)
+
+    view_stock_button = tk.Button(stock_submenu, text="View Stock", font=("Helvetica", 12), bg="#7f8c8d", fg="white", anchor="w", relief="flat", padx=20, command=lambda: open_view_stock(root))
+    view_stock_button.pack(fill="x", pady=5)
+
+    # Bank Management Button
+    bank_button = tk.Button(sidebar, text="Bank Management", font=("Helvetica", 14), bg="#34495e", fg="white", anchor="w", relief="flat", padx=20)
+    bank_button.pack(fill="x", pady=10)
+
+    # Submenu for Bank Management (Always visible)
+    bank_submenu = tk.Frame(sidebar, bg="#34495e")
+    bank_submenu.pack(fill="x", pady=10, padx=20)
+
+    view_bank_button = tk.Button(bank_submenu, text="View Bank", font=("Helvetica", 12), bg="#7f8c8d", fg="white", anchor="w", relief="flat", padx=20, command=lambda: open_view_bank(root))
+    view_bank_button.pack(fill="x", pady=5)
+
+    add_bank_button = tk.Button(bank_submenu, text="Add New Bank", font=("Helvetica", 12), bg="#7f8c8d", fg="white", anchor="w", relief="flat", padx=20, command=lambda: open_new_bank_input(root))
+    add_bank_button.pack(fill="x", pady=5)
+
+    # Daily Log (Sales Tracker) Button
+    daily_log_button = tk.Button(sidebar, text="Daily Sales Tracker", font=("Helvetica", 14), bg="#34495e", fg="white", anchor="w", relief="flat", padx=20, command=lambda: open_daily_sales(root))
+    daily_log_button.pack(fill="x", pady=10)
+
+
 
     content_frame = tk.Frame(root)
     content_frame.pack(fill="both", expand=True)
