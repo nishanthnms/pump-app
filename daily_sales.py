@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import messagebox,ttk
 import psycopg2
 import functools
+from datetime import datetime
 
 
 content_frame = None
@@ -10,7 +11,13 @@ def open_daily_sales(root):
     from dashboard import show_dashboard
     from stock_management import open_new_product_input, open_view_stock
     from bank import open_view_bank, open_new_bank_input
+
+    logged_user_id = getattr(root, 'logged_user_id', None)
     
+    if not logged_user_id:
+        messagebox.showerror("Error", "No user logged in")
+        return
+        
     global grand_total_row
     # Clear the existing widgets except the menu
     for widget in root.winfo_children():
@@ -136,6 +143,17 @@ def open_daily_sales(root):
             grand_total_row['total_profit'].config(state='disabled')
             # grand_total_label.config(text=f"Grand Total: {grand_total:.2f}")
 
+        def calculate_sales(row_data):
+            try:
+                opening = float(row_data['opening'].get() or 0)
+                closing = float(row_data['closing'].get() or 0)
+                sales = opening - closing
+                row_data['sale'].delete(0, tk.END)
+                row_data['sale'].insert(0, f"{sales:.2f}")
+                calculate_total_profit(row_data)
+            except ValueError:
+                pass
+
         def calculate_total_profit(row_data):
             """Calculate Total Profit based on Unit Profit and Sale."""
             try:
@@ -168,6 +186,94 @@ def open_daily_sales(root):
                     rows_list.remove(row_data)
                 if 'total_profit' in row_data:
                     update_grand_total()
+
+        def submit_data():
+            """Save all data to the database."""
+            try:
+                conn = psycopg2.connect(
+                    dbname="pump_stock_management",
+                    user="local_user",
+                    password="123",
+                    host="localhost",
+                    port="5432"
+                )
+                cursor = conn.cursor()
+
+                # 1. Save Daily Sales Tracker data to sales_log
+                for row in rows:
+                    product_name = row['product_name'].cget("text")
+                    cursor.execute(
+                        "SELECT id FROM product WHERE product_name = %s AND is_active = TRUE",
+                        (product_name,)
+                    )
+                    product_result = cursor.fetchone()
+                    
+                    if not product_result:
+                        raise Exception(f"Product not found: {product_name}")
+                    opening = float(row['opening'].get() or 0)
+                    closing = float(row['closing'].get() or 0)
+                    sale = float(row['sale'].get() or 0)
+                    unit_profit = float(row['unit_profit'].get() or 0)
+                    total_profit = float(row['total_profit'].get() or 0)
+
+                    cursor.execute(
+                        """
+                        INSERT INTO sale_log 
+                        (product_id, opening_stock, closing_stock, sale, unit_profit, total_profit, added_by)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        (product_result[0], opening, closing, sale, unit_profit, total_profit, logged_user_id)
+                    )
+
+                # 2. Save Bank Data to bank_log
+                for row in rows2:
+                    bank_name = row['bank_name'].cget("text")
+                    cursor.execute(
+                        "SELECT id FROM bank WHERE bank_name = %s AND is_active = TRUE",
+                        (bank_name,)
+                    )
+                    bank_result = cursor.fetchone()
+                    
+                    if not bank_result:
+                        raise Exception(f"Product not found: {bank_name}")
+                    opening = float(row['opening'].get() or 0)
+                    withdraw = float(row['withdraw'].get() or 0)
+                    deposit = float(row['deposit'].get() or 0)
+                    closing = float(row['closing'].get() or 0)
+                    comments = row['comments'].get("1.0", tk.END).strip()
+                    log_date = datetime.now().date()
+
+                    cursor.execute(
+                        """
+                        INSERT INTO bank_log 
+                        (bank_id, opening_balance, withdraw, deposit, closing_balance, comments, log_date)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        (bank_result[0], opening, withdraw, deposit, closing, comments, log_date)
+                    )
+
+                # 3. Save Collection Data to collection_log
+                inhand_amount = float(rows_frame3.grid_slaves(row=0, column=1)[0].get() or 0)
+                bank_amount = float(rows_frame3.grid_slaves(row=1, column=1)[0].get() or 0)
+                
+                cursor.execute(
+                    """
+                    INSERT INTO collection_log 
+                    (inhand_amount, bank_amount, added_by)
+                    VALUES (%s, %s, %s)
+                    """,
+                    (inhand_amount, bank_amount, logged_user_id)
+                )
+
+                conn.commit()
+                messagebox.showinfo("Success", "Data saved successfully!")
+                
+            except Exception as e:
+                import traceback;traceback.print_exc()
+                conn.rollback()  # Rollback in case of error
+                messagebox.showerror("Database Error", f"Error saving data: {e}")
+            finally:
+                conn.close()
 
         for product in products:
             product_name = product[0]  # Extract product name from tuple
@@ -204,6 +310,9 @@ def open_daily_sales(root):
             row_data['total_profit'].insert(0, "0.00")
             row_data['total_profit'].config(state='disabled')
 
+            # Add event to auto-calculate Sale
+            row_data['opening'].bind('<KeyRelease>', lambda e, r=row_data: calculate_sales(r))
+            row_data['closing'].bind('<KeyRelease>', lambda e, r=row_data: calculate_sales(r))
 
             # Add events to auto-calculate Total Profit
             row_data['sale'].bind('<KeyRelease>', lambda e, r=row_data: calculate_total_profit(r))
@@ -252,7 +361,7 @@ def open_daily_sales(root):
 
         header_frame2 = tk.Frame(root, bg="#34495e", padx=10, pady=5)
         header_frame2.pack(fill="x", padx=10)
-        headers2 = ["Bank Name", "Opening", "Closing", "Balance", "Action"]
+        headers2 = ["Bank Name", "Withdraw", "Deposit", "Opening", "Closing", "Comments", "Action"]
         
         for i, header in enumerate(headers2):
             tk.Label(
@@ -276,8 +385,11 @@ def open_daily_sales(root):
             row_data_second = {
                 "bank_name": tk.Label(rows_frame2, text=bank_name, width=20, anchor="w"),
                 "opening": tk.Entry(rows_frame2, width=25),
+                "withdraw": tk.Entry(rows_frame2, width=30),
+                "deposit": tk.Entry(rows_frame2, width=30),
                 "closing": tk.Entry(rows_frame2, width=25),
                 "balance": tk.Entry(rows_frame2, width=25),
+                "comments": tk.Text(rows_frame2, width=30, height=1),
             }
 
             row_data_second['delete'] = tk.Button(
@@ -289,9 +401,11 @@ def open_daily_sales(root):
 
             row_data_second['bank_name'].grid(row=i, column=0, padx=5, pady=5)
             row_data_second['opening'].grid(row=i, column=1, padx=5, pady=5)
-            row_data_second['closing'].grid(row=i, column=2, padx=5, pady=5)
-            row_data_second['balance'].grid(row=i, column=3, padx=5, pady=5)
-            row_data_second['delete'].grid(row=len(rows), column=4, padx=5, pady=5)
+            row_data_second['withdraw'].grid(row=i, column=2, padx=5, pady=5)
+            row_data_second['deposit'].grid(row=i, column=3, padx=5, pady=5)
+            row_data_second['closing'].grid(row=i, column=4, padx=5, pady=5)
+            row_data_second['comments'].grid(row=i, column=5, padx=5, pady=5)
+            row_data_second['delete'].grid(row=len(rows), column=7, padx=5, pady=5)
 
             rows2.append(row_data_second)
 
@@ -343,34 +457,8 @@ def open_daily_sales(root):
                 width=20
             ).grid(row=i, column=1, padx=5, pady=5)
 
-        rows2 = []
-
-        # for bank_data in bank:
-        #     bank_name = bank_data[0]  # Extract product name from tuple
-        #     row_data_second = {
-        #         "bank_name": tk.Label(rows_frame2, text=bank_name, width=20, anchor="w"),
-        #         "opening": tk.Entry(rows_frame2, width=25),
-        #         "closing": tk.Entry(rows_frame2, width=25),
-        #         "balance": tk.Entry(rows_frame2, width=25),
-        #     }
-
-        #     row_data_second['delete'] = tk.Button(
-        #         rows_frame2, 
-        #         text="❌ Delete", 
-        #         fg="red",
-        #         command=lambda r=row_data_second: delete_row(r, rows2)  # Use lambda with default argument
-        #     )
-
-            # row_data_second['bank_name'].grid(row=i, column=0, padx=5, pady=5)
-            # row_data_second['opening'].grid(row=i, column=1, padx=5, pady=5)
-            # row_data_second['closing'].grid(row=i, column=2, padx=5, pady=5)
-            # row_data_second['balance'].grid(row=i, column=3, padx=5, pady=5)
-            # row_data_second['delete'].grid(row=len(rows), column=4, padx=5, pady=5)
-
-            # rows2.append(row_data_second)
-
         # Submit Button for the second table
-        submit_button2 = tk.Button(root, text="Submit", command=lambda: print("Second table submitted"))
+        submit_button2 = tk.Button(root, text="Submit", font=("Arial", 14), bg="#27ae60", fg="white", command=submit_data)
         submit_button2.pack(pady=10)
 
     except Exception as e:
